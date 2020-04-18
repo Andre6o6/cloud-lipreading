@@ -1,35 +1,41 @@
 import argparse
-import cv2
 import numpy as np
 import os
+import skvideo.io
+from mtcnn import MTCNN
 
-def video_to_frames(video_path, frames_dir):
-    cap = cv2.VideoCapture(video_path)
-    i = 0
-    while(True):
-        ret, frame = cap.read()
-        if not ret:
-            break
+def crop_mouth(image, size=(100,50)):
+    detector = MTCNN()
+    
+    result = detector.detect_faces(image)
+    keypoints = result[0]['keypoints']
+    x0,y0 = keypoints['mouth_left']
+    x1,y1 = keypoints['mouth_right']
+    
+    center_x, center_y = int((x0+x1)/2), int((y0+y1)/2)
+    x0,x1 = center_x-size[0]//2, center_x+size[0]//2
+    y0,y1 = center_y-size[1]//2, center_y+size[1]//2
+    return x0,y0,x1,y1
 
-        frame_name = "frame{:03}.png".format(i)
-        frame_path = os.path.join(frames_dir, frame_name)
-        cv2.imwrite(frame_path, frame)
-        i += 1
-    cap.release()
 
-
-def dataset_to_frames(root="GRID/videos/", out_root="GRID/frames/"):
+def dataset_to_numpy(root="GRID/videos/", out_root="GRID/videos_npy/"):
     for subject in os.listdir(root):
         os.mkdir(os.path.join(out_root, subject))
 
         dir_path = os.path.join(root, subject)
-        for file in os.listdir(dir_path):
-            filename = file.split('.')[0]
-            out_dir_path = os.path.join(out_root, subject, filename)
-            os.mkdir(out_dir_path)
-
-            video_path = os.path.join(dir_path, file)
-            video_to_frames(video_path, out_dir_path)
+        for video_file in os.listdir(dir_path):
+            filename = video_file.split('.')[0]
+            out_path = os.path.join(out_root, subject, filename+'.npy')
+            video_path = os.path.join(dir_path, video_file)
+            
+            #TODO process missing mouth and not video separately
+            try:
+                video_data = skvideo.io.vread(video_path)
+                x0,y0,x1,y1 = crop_mouth(video_data[0])
+            except:
+                continue
+            new_video_data = video_data[:, y0:y1, x0:x1, :]
+            np.save(out_path, new_video_data)
         print("Done with subject", subject)
 
 
@@ -45,8 +51,8 @@ def arg_parse():
     parser.add_argument(
         "--out",
         dest="out_root",
-        help="Directory where frames are to be saved",
-        default="GRID/frames/",
+        help="Directory where numpy arrays are to be cached",
+        default="GRID/videos_npy/",
         type=str,
     )
     return parser.parse_args()
@@ -58,4 +64,4 @@ if __name__ == "__main__":
         os.mkdir(args.out_root)
     except:
         pass
-    dataset_to_frames(args.root, args.out_root)
+    dataset_to_numpy(args.root, args.out_root)
