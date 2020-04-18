@@ -8,7 +8,7 @@ do
     wget -q "http://spandh.dcs.shef.ac.uk/gridcorpus/s$i/video/s$i.mpg_vcd.zip"
     wget -q "http://spandh.dcs.shef.ac.uk/gridcorpus/s$i/align/s$i.tar"
     unzip -q "s$i.mpg_vcd.zip" -d "GRID/videos/"
-    tar -xf "s1.tar" -C "GRID/align/"
+    tar -xf "s$i.tar" -C "GRID/align/"
     mv "GRID/align/align" "GRID/align/s$i"
     rm -f "s$i.mpg_vcd.zip"
     rm -f "s$i.tar"
