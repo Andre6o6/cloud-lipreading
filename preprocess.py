@@ -4,9 +4,7 @@ import os
 import skvideo.io
 from mtcnn import MTCNN
 
-def crop_mouth(image, size=(100,50)):
-    detector = MTCNN()
-    
+def crop_mouth(detector, image, size=(100,50)):    
     result = detector.detect_faces(image)
     keypoints = result[0]['keypoints']
     x0,y0 = keypoints['mouth_left']
@@ -18,7 +16,7 @@ def crop_mouth(image, size=(100,50)):
     return x0,y0,x1,y1
 
 
-def dataset_to_numpy(root="GRID/videos/", out_root="GRID/videos_npy/"):
+def dataset_to_numpy(detector, root="GRID/videos/", out_root="GRID/videos_npy/"):
     for subject in os.listdir(root):
         os.mkdir(os.path.join(out_root, subject))
 
@@ -31,7 +29,7 @@ def dataset_to_numpy(root="GRID/videos/", out_root="GRID/videos_npy/"):
             #TODO process missing mouth and not video separately
             try:
                 video_data = skvideo.io.vread(video_path)
-                x0,y0,x1,y1 = crop_mouth(video_data[0])
+                x0,y0,x1,y1 = crop_mouth(detector, video_data[0])
             except:
                 continue
             new_video_data = video_data[:, y0:y1, x0:x1, :]
@@ -64,4 +62,5 @@ if __name__ == "__main__":
         os.mkdir(args.out_root)
     except:
         pass
-    dataset_to_numpy(args.root, args.out_root)
+    detector = MTCNN()
+    dataset_to_numpy(detector, args.root, args.out_root)
