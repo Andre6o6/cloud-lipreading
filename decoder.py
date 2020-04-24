@@ -31,7 +31,7 @@ class Decoder(object):
             beam_width=self.beam_width, 
             top_paths=self.top_paths
             )
-        results = [path.eval(session=k.get_session()) for path in decoded[0]]
+        results = [path.numpy() for path in decoded[0]]
         return results[0]
 
 
