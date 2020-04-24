@@ -10,7 +10,8 @@ from keras import backend as k
 from keras.models import Model
 from keras.optimizers import Adam
 
-def ctc_lambda_func(y_pred, labels, input_length, label_length):
+def ctc_lambda_func(args):
+    y_pred, labels, input_length, label_length = args
     return k.ctc_batch_cost(labels, y_pred[:, :, :], input_length, label_length)
 
 
@@ -43,7 +44,7 @@ class LipNet(object):
         self.res = TimeDistributed(Flatten())(self.drop_3)
 
         self.gru_1 = Bidirectional(GRU(256, return_sequences=True, activation=None, kernel_initializer='Orthogonal', name='gru_1'), merge_mode='concat')(self.res)
-        self.gru_1_actv = Activation('relu', name=name)(self.gru_1)
+        self.gru_1_actv = Activation('relu', name='gru_1_actv')(self.gru_1)
         self.gru_2 = Bidirectional(GRU(256, return_sequences=True, activation=None, kernel_initializer='Orthogonal', name='gru_2'), merge_mode='concat')(self.gru_1_actv)
         self.gru_2_actv = Activation('relu', name='gru_2_actv')(self.gru_2)
 
@@ -54,7 +55,7 @@ class LipNet(object):
         self.input_length = Input(shape=[1], dtype='int64', name='input_length')
         self.label_length = Input(shape=[1], dtype='int64', name='label_length')
 
-        self.loss_out = Lambda(ctc_lambda_func, output_shape=(1,), name='ctc')(self.y_pred, self.input_labels, self.input_length, self.label_length)
+        self.loss_out = Lambda(ctc_lambda_func, output_shape=(1,), name='ctc')([self.y_pred, self.input_labels, self.input_length, self.label_length])
 
         self.model = Model(inputs=[self.input_layer, self.input_labels, self.input_length, self.label_length], outputs=self.loss_out)
 
