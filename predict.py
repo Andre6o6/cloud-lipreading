@@ -30,6 +30,11 @@ def arg_parse():
         default="dictionaries/grid.txt",
         type=str,
     )
+    parser.add_argument(
+        "--save", 
+        help="Save video with subtitle overlay",
+        action="store_true",
+    )
     return parser.parse_args()
 
 
@@ -64,7 +69,8 @@ def main():
     print("Predicted subtitles:")
     print(subs)
     
-    render_subtitles(args.video_path, subs)
+    if args.save:
+        render_subtitles(args.video_path, subs)
 
 
 if __name__ == "__main__":
