@@ -1,9 +1,11 @@
+ffmpeg-python>=0.2.0
 mtcnn>=0.1.0
-opencv-contrib-python>=4.1.2.30
-opencv-python>=4.1.2.30
-tensorflow>=1.15.0
-tqdm>=4.38.0
 Keras>=2.2.2
 Keras-Applications>=1.0.4
 Keras-Preprocessing>=1.0.2
-tensorflow-gpu>=1.10.0,<2.0
+opencv-contrib-python>=4.1.2.30
+opencv-python>=4.1.2.30
+sk-video>=1.1.10
+tensorflow>=1.15.0
+tqdm>=4.38.0
+
