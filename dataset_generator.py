@@ -9,9 +9,9 @@ def is_npy(path):
 class Align:
     self.__SILENCE_TOKENS = ['sp', 'sil']
     
-	sentence: str
-	labels: np.ndarray
-	length: int
+    sentence: str
+    labels: np.ndarray
+    length: int
 
     def __init__(self, filepath, max_string):
         with open(filepath, 'r') as f:
@@ -36,7 +36,7 @@ class DatasetGenerator(object):
         self.val_ratio = val_ratio
         
         self.train_generator = None
-		self.val_generator = None
+        self.val_generator = None
         
         self.build_dataset()
         
@@ -45,10 +45,10 @@ class DatasetGenerator(object):
         train_videos, val_videos = self.train_val_split(subjects_videos)
         
         train_aligns = self.generate_align_hash(train_videos)
-		val_aligns = self.generate_align_hash(val_videos)
+        val_aligns = self.generate_align_hash(val_videos)
         
         self.train_generator = BatchGenerator(train_videos, train_aligns, self.batch_size)
-		self.val_generator = BatchGenerator(val_videos, val_aligns, self.batch_size)
+        self.val_generator = BatchGenerator(val_videos, val_aligns, self.batch_size)
 
     def get_subjects_videos(self):
         subjects_videos = []

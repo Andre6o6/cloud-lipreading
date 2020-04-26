@@ -36,5 +36,5 @@ class Decoder(object):
 
 
 def spellchecked_decoder(dict_path):
-	spell = Spell(dict_path)
-	return Decoder(postprocessors=[labels_to_text, spell.sentence])
+    spell = Spell(dict_path)
+    return Decoder(postprocessors=[labels_to_text, spell.sentence])
