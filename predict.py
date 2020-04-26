@@ -5,6 +5,7 @@ from mtcnn import MTCNN
 from decoder import spellchecked_decoder
 from lipnet import LipNet
 from preprocess import crop_mouth
+from subtitles import render_subtitles
 
 
 def arg_parse():
@@ -59,8 +60,11 @@ def main():
     #Decode dense prediction
     input_lengths=np.array([75])
     decoder = spellchecked_decoder(args.dict_path)
-    results = decoder.decode(y_pred, input_lengths)
-    print(results)
+    subs = decoder.decode(y_pred, input_lengths)
+    print("Predicted subtitles:")
+    print(subs)
+    
+    render_subtitles(args.video_path, subs)
 
 
 if __name__ == "__main__":

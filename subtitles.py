@@ -16,8 +16,11 @@ def render_subtitles(video_path, subtitles, offsets=[]):
     audio = file.audio
     video = file.drawtext(
             text=sub,
+            box=1,
+            boxborderw=2,
+            boxcolor="black",
             fontcolor="white",
             x="(w-tw)/2",
             y="h-1.5*th",
         )
-    ffmpeg.output(video, audio, name).run()
+    ffmpeg.output(video, audio, name).global_args( '-loglevel', 'error').run()
