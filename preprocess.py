@@ -4,7 +4,15 @@ import os
 import skvideo.io
 from mtcnn import MTCNN
 
-def crop_mouth(detector, image, size=(100,50)):    
+def resize_factor(detector, image, mouth_size=40):
+    result = detector.detect_faces(image)
+    keypoints = result[0]['keypoints']
+    x0,_ = keypoints['mouth_left']
+    x1,_ = keypoints['mouth_right']
+    return mouth_size/abs(x1-x0)
+
+
+def crop_mouth(detector, image, size=(100,50)):
     result = detector.detect_faces(image)
     keypoints = result[0]['keypoints']
     x0,y0 = keypoints['mouth_left']
@@ -14,6 +22,23 @@ def crop_mouth(detector, image, size=(100,50)):
     x0,x1 = center_x-size[0]//2, center_x+size[0]//2
     y0,y1 = center_y-size[1]//2, center_y+size[1]//2
     return x0,y0,x1,y1
+
+
+def batch_crop_mouth(detector, images, size=(100,50)):
+    f,_,_,c = images.shape
+    cropped = np.zeros((f,size[1],size[0],c))
+    for i,image in enumerate(images):    
+        result = detector.detect_faces(image)
+        keypoints = result[0]['keypoints']
+        x0,y0 = keypoints['mouth_left']
+        x1,y1 = keypoints['mouth_right']
+        
+        center_x, center_y = int((x0+x1)/2), int((y0+y1)/2)
+        x0,x1 = center_x-size[0]//2, center_x+size[0]//2
+        y0,y1 = center_y-size[1]//2, center_y+size[1]//2
+
+        cropped[i] = images[i, y0:y1, x0:x1]
+    return cropped
 
 
 def dataset_to_numpy(detector, root="GRID/videos/", out_root="GRID/videos_npy/"):

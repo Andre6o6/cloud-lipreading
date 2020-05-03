@@ -5,7 +5,39 @@ from mtcnn import MTCNN
 from decoder import spellchecked_decoder
 from lipnet import LipNet
 from preprocess import crop_mouth
-from subtitles import render_subtitles
+from subtitles import render_line
+
+def prepare_batch(data):
+    #Swap dims to TxWxHxC, normalize and unsqueeze
+    x_data = np.swapaxes(data, 1, 2)
+    x_data = x_data.astype(np.float32) / 255
+    x_data = x_data[np.newaxis, :]
+    return x_data
+
+
+def get_subs(model, decoder, frames, window=75):
+    #If we have less frames than input needs, add blank frames
+    f = frames.shape[0]
+    if f<75:
+        frames = np.concatenate((frames, np.full((75-f,h,w,c),127)))
+
+    subtitles = []
+    input_lengths=np.array([window])
+    iter_count = frames.shape[0]//window
+    #Batch process frames
+    for i in range(iter_count):
+        x_data = prepare_batch(frames[i*window:(i+1)*window])
+        y_pred = lipnet.predict(x_data)
+        subs = decoder.decode(y_pred, input_lengths)
+        subtitles.extend(subs)
+    
+    #Batch remaining frames with some already processed from the end
+    if frames.shape[0]%window > 0:
+        x_data = prepare_batch(frames[-window:])
+        y_pred = lipnet.predict(x_data)
+        subs = decoder.decode(y_pred, input_lengths)
+        subtitles.extend(subs)
+    return subtitles
 
 
 def arg_parse():
@@ -53,24 +85,16 @@ def main():
                     image_channels=3, 
                     image_height=50, 
                     image_width=100, 
-                    max_string=32
+                    max_string=64
                     ).compile_model().load_weights(args.weights_path)
-    #Swap dims to TxWxHxC, normalize and unsqueeze
-    x_data = np.swapaxes(video_data, 1, 2)
-    x_data = x_data.astype(np.float32) / 255
-    x_data = x_data[np.newaxis, :]
-    
-    y_pred = lipnet.predict(x_data)
-    
-    #Decode dense prediction
-    input_lengths=np.array([75])
     decoder = spellchecked_decoder(args.dict_path)
-    subs = decoder.decode(y_pred, input_lengths)
+    
+    subs = get_subs(lipnet, decoder, video_data)
     print("Predicted subtitles:")
     print(subs)
     
     if args.save:
-        render_subtitles(args.video_path, subs)
+        render_line(args.video_path, subs)
 
 
 if __name__ == "__main__":
