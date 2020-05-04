@@ -38,14 +38,18 @@ def render_subtitles(video_path, out_path, subs, offsets=75):
     fps = 29
     out = cv2.VideoWriter(out_path, fourcc, fps, size)
 
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    x,y = (10,500)
+    font = cv2.FONT_HERSHEY_COMPLEX_SMALL
+    color = (255,255,255)
+    box_color = (0,0,0)
 
     n_frame = 0
     n_line = 0
     while ret:
-        #text_w, text_h = cv2.getTextSize(subs[n_line], font, 1, 2)[0]
-        cv2.putText(image, subs[n_line],(x,y), font, 1, 255)
+        text_w, text_h = cv2.getTextSize(subs[n_line], font, 1, 1)[0]
+        x = size[0]//2 - text_w//2
+        y = size[1] - 5
+        cv2.rectangle(image, (x,y+2), (x+text_w,y-text_h-2), box_color, -1)
+        cv2.putText(image, subs[n_line],(x,y), font, 1, color)
         out.write(image)
 
         ret,image = vidcap.read()
