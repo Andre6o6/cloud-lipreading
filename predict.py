@@ -5,7 +5,7 @@ from mtcnn import MTCNN
 from decoder import spellchecked_decoder
 from lipnet import LipNet
 from preprocess import crop_mouth
-from subtitles import render_line
+from subtitles import render_subtitles
 
 def prepare_batch(data):
     #Swap dims to TxWxHxC, normalize and unsqueeze
@@ -27,14 +27,14 @@ def get_subs(model, decoder, frames, window=75):
     #Batch process frames
     for i in range(iter_count):
         x_data = prepare_batch(frames[i*window:(i+1)*window])
-        y_pred = lipnet.predict(x_data)
+        y_pred = model.predict(x_data)
         subs = decoder.decode(y_pred, input_lengths)
         subtitles.extend(subs)
     
     #Batch remaining frames with some already processed from the end
     if frames.shape[0]%window > 0:
         x_data = prepare_batch(frames[-window:])
-        y_pred = lipnet.predict(x_data)
+        y_pred = model.predict(x_data)
         subs = decoder.decode(y_pred, input_lengths)
         subtitles.extend(subs)
     return subtitles
@@ -94,7 +94,9 @@ def main():
     print(subs)
     
     if args.save:
-        render_line(args.video_path, subs)
+        name, ext = args.video_path.split('.')
+        out_path = name+"_subbed."+ext
+        render_subtitles(args.video_path, out_path, subs)
 
 
 if __name__ == "__main__":
