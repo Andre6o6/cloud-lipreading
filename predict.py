@@ -7,37 +7,55 @@ from lipnet import LipNet
 from preprocess import crop_mouth
 from subtitles import render_subtitles
 
-def prepare_batch(data):
-    #Swap dims to TxWxHxC, normalize and unsqueeze
-    x_data = np.swapaxes(data, 1, 2)
-    x_data = x_data.astype(np.float32) / 255
-    x_data = x_data[np.newaxis, :]
-    return x_data
-
-
-def get_subs(model, decoder, frames, window=75):
-    #If we have less frames than input needs, add blank frames
-    f = frames.shape[0]
-    if f<75:
-        frames = np.concatenate((frames, np.full((75-f,h,w,c),127)))
-
-    subtitles = []
-    input_lengths=np.array([window])
-    iter_count = frames.shape[0]//window
-    #Batch process frames
-    for i in range(iter_count):
-        x_data = prepare_batch(frames[i*window:(i+1)*window])
-        y_pred = model.predict(x_data)
-        subs = decoder.decode(y_pred, input_lengths)
-        subtitles.extend(subs)
+class Predictor:
+    def __init__(self, weights_path, dict_path, window=75):
+        self.window = window
+        self.detector = MTCNN()
+        #TODO calculate all those constants for random video
+        self.lipnet = LipNet(
+            frame_count=window, 
+            image_channels=3, 
+            image_height=50, 
+            image_width=100, 
+            max_string=64
+        ).compile_model().load_weights(weights_path)
+        self.decoder = spellchecked_decoder(dict_path)
+        
+    def preprocess(self, video_data):
+        #Find mouth on first frame and crop accordingly
+        x0,y0,x1,y1 = crop_mouth(self.detector, video_data[0])
+        video_data = video_data[:, y0:y1, x0:x1, :]
+        
+        #Swap dims to TxWxHxC, normalize
+        video_data = np.swapaxes(video_data, 1, 2)
+        video_data = video_data.astype(np.float32) / 255
+        return video_data
     
-    #Batch remaining frames with some already processed from the end
-    if frames.shape[0]%window > 0:
-        x_data = prepare_batch(frames[-window:])
-        y_pred = model.predict(x_data)
-        subs = decoder.decode(y_pred, input_lengths)
-        subtitles.extend(subs)
-    return subtitles
+    def predict_subs(video_data):
+        cropped = self.preprocess(video_data)
+        
+        #If we have less frames than input needs, add blank frames
+        f,h,w,c = cropped.shape
+        if f<self.window:
+            cropped = np.concatenate((cropped, np.full((75-f,h,w,c),127)))
+
+        subtitles = []
+        input_lengths=np.array([self.window])
+        iter_count = cropped.shape[0]//self.window
+        #Batch process frames
+        for i in range(iter_count):
+            x_data = cropped[i*self.window:(i+1)*self.window]
+            y_pred = self.lipnet.predict(x_data[np.newaxis, :])   #unsqueeze
+            subs = self.decoder.decode(y_pred, input_lengths)
+            subtitles.extend(subs)
+        
+        #Batch remaining frames with some already processed from the end
+        if cropped.shape[0]%self.window > 0:
+            x_data = cropped[-self.window:]
+            y_pred = self.lipnet.predict(x_data[np.newaxis, :])   #unsqueeze
+            subs = self.decoder.decode(y_pred, input_lengths)
+            subtitles.extend(subs)
+        return subtitles
 
 
 def arg_parse():
@@ -72,24 +90,9 @@ def arg_parse():
 
 def main():
     args = arg_parse()
-    
-    detector = MTCNN()
     video_data = skvideo.io.vread(args.video_path)
-    
-    #Find mouth on first frame and crop accordingly
-    x0,y0,x1,y1 = crop_mouth(detector, video_data[0])
-    video_data = video_data[:, y0:y1, x0:x1, :]
-    
-    #TODO calculate all those constants for random video
-    lipnet = LipNet(frame_count=75, 
-                    image_channels=3, 
-                    image_height=50, 
-                    image_width=100, 
-                    max_string=64
-                    ).compile_model().load_weights(args.weights_path)
-    decoder = spellchecked_decoder(args.dict_path)
-    
-    subs = get_subs(lipnet, decoder, video_data)
+    model = Predictor(args.weights_path, args.dict_path)
+    subs = model.predict_subs(video_data)
     print("Predicted subtitles:")
     print(subs)
     
