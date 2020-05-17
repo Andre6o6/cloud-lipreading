@@ -7,6 +7,14 @@ WEIGHTS_PATH="weights/weights.hdf5"
 DICT_PATH="dictionaries/english.txt"
 model = Predictor(WEIGHTS_PATH, DICT_PATH)
 
+
+@app.route('/', methods=['GET', 'POST'])
+def main():
+    if request.method == 'POST':
+        pass
+    return render_template('form.html')
+    
+
 @app.route("/predict", methods=["POST"])
 def predict():
     data = {}
